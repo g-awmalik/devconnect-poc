@@ -1,0 +1,45 @@
+steps:
+  # Step 1: Generate random suffix, zip the workspace, and save the filename
+  - name: 'ubuntu'
+    id: 'zip-workspace'
+    script: |
+      #!/usr/bin/env bash
+      
+      # Install zip and openssl (for secure random generation)
+      apt-get update && apt-get install zip openssl -y
+
+      # Generate a random 4-character hex string (e.g., e7a9)
+      RANDOM_SUFFIX=$(openssl rand -hex 2)
+      
+      # Construct the new filename
+      FILE_NAME="pr-workspace-${RANDOM_SUFFIX}.zip"
+      
+      echo "Zipping code into ${FILE_NAME}..."
+      
+      # Zip the entire workspace (excluding the zip file itself)
+      zip -r ${FILE_NAME} . -x "*.zip"
+
+      # Write the filename to a temporary file so Step 2 can read it
+      echo ${FILE_NAME} > /workspace/generated_filename.txt
+
+  # Step 2: Read the filename and upload it to GCS
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'upload-to-gcs'
+    entrypoint: 'bash'
+    args: 
+      - '-c'
+      - |
+        # Read the exact filename generated in Step 1
+        FILE_NAME=$(cat /workspace/generated_filename.txt)
+        
+        echo "Uploading ${FILE_NAME} to gs://${_BUCKET_NAME}/..."
+        
+        # Upload the zip file to the GCS bucket
+        gsutil cp ${FILE_NAME} gs://${_BUCKET_NAME}/${FILE_NAME}
+        
+        # Optional: Clean up the tracking file
+        rm /workspace/generated_filename.txt
+
+# Define substitution variables (these can be overridden in the Trigger settings)
+substitutions:
+  _BUCKET_NAME: 'dev-connect-poc'
