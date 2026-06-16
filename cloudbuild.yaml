@@ -6,11 +6,16 @@ steps:
       #!/usr/bin/env bash
       
       apt-get update && apt-get install zip openssl -y
-      RANDOM_SUFFIX=$(openssl rand -hex 2)
-      FILE_NAME="pr-workspace-${RANDOM_SUFFIX}.zip"
-      echo "Zipping code into ${FILE_NAME}..."
-      zip -r ${FILE_NAME} . -x "*.zip"
-      echo ${FILE_NAME} > /workspace/generated_filename.txt
+      
+      # Use $$ to escape the subshell execution in Cloud Build
+      RANDOM_SUFFIX=$$(openssl rand -hex 2)
+      
+      # Use $$ to escape bash variables
+      FILE_NAME="pr-workspace-$${RANDOM_SUFFIX}.zip"
+      
+      echo "Zipping code into $${FILE_NAME}..."
+      zip -r $${FILE_NAME} . -x "*.zip"
+      echo $${FILE_NAME} > /workspace/generated_filename.txt
 
   # Step 2: Read the filename and upload it to GCS
   - name: 'gcr.io/cloud-builders/gsutil'
@@ -19,9 +24,13 @@ steps:
     args: 
       - '-c'
       - |
-        FILE_NAME=$(cat /workspace/generated_filename.txt)
-        echo "Uploading ${FILE_NAME} to gs://${_BUCKET_NAME}/..."
-        gsutil cp ${FILE_NAME} gs://${_BUCKET_NAME}/${FILE_NAME}
+        # Use $$ for the bash variable
+        FILE_NAME=$$(cat /workspace/generated_filename.txt)
+        
+        # Use $$ for bash variables, but KEEP single $ for Cloud Build substitutions
+        echo "Uploading $${FILE_NAME} to gs://${_BUCKET_NAME}/..."
+        gsutil cp $${FILE_NAME} gs://${_BUCKET_NAME}/$${FILE_NAME}
+        
         rm /workspace/generated_filename.txt
 
 substitutions:
