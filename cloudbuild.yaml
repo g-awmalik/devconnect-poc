@@ -1,5 +1,6 @@
 steps:
-  # Step 1: Generate random suffix, zip the workspace, and save the filename
+  # Step 1: Uses the 'script' block. 
+  # Cloud Build skips substitution here, so we use standard single '$' for Bash.
   - name: 'ubuntu'
     id: 'zip-workspace'
     script: |
@@ -7,27 +8,25 @@ steps:
       
       apt-get update && apt-get install zip openssl -y
       
-      # Use $$ to escape the subshell execution in Cloud Build
-      RANDOM_SUFFIX=$$(openssl rand -hex 2)
+      RANDOM_SUFFIX=$(openssl rand -hex 2)
+      FILE_NAME="pr-workspace-${RANDOM_SUFFIX}.zip"
       
-      # Use $$ to escape bash variables
-      FILE_NAME="pr-workspace-$${RANDOM_SUFFIX}.zip"
-      
-      echo "Zipping code into $${FILE_NAME}..."
-      zip -r $${FILE_NAME} . -x "*.zip"
-      echo $${FILE_NAME} > /workspace/generated_filename.txt
+      echo "Zipping code into ${FILE_NAME}..."
+      zip -r ${FILE_NAME} . -x "*.zip"
+      echo ${FILE_NAME} > /workspace/generated_filename.txt
 
-  # Step 2: Read the filename and upload it to GCS
+  # Step 2: Uses 'args'. 
+  # Cloud Build parses this, so we MUST use '$$' for Bash variables to prevent errors,
+  # while keeping the single '$' for Cloud Build's native substitution (${_BUCKET_NAME}).
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-to-gcs'
     entrypoint: 'bash'
     args: 
       - '-c'
       - |
-        # Use $$ for the bash variable
+        # $$ for Bash variables
         FILE_NAME=$$(cat /workspace/generated_filename.txt)
         
-        # Use $$ for bash variables, but KEEP single $ for Cloud Build substitutions
         echo "Uploading $${FILE_NAME} to gs://${_BUCKET_NAME}/..."
         gsutil cp $${FILE_NAME} gs://${_BUCKET_NAME}/$${FILE_NAME}
         
