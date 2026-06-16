@@ -27,5 +27,7 @@ steps:
 substitutions:
   _BUCKET_NAME: 'dev-connect-poc'
 
+serviceAccount: 'projects/$PROJECT_ID/serviceAccounts/dev-connect-poc-sa@$PROJECT_ID.iam.gserviceaccount.com'
+
 options:
-  logging: CLOUD_LOGGING_ONLY
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
