@@ -29,5 +29,4 @@ substitutions:
 
 serviceAccount: 'projects/$PROJECT_ID/serviceAccounts/dev-connect-poc-sa@$PROJECT_ID.iam.gserviceaccount.com'
 
-options:
-  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+logsBucket: 'dev-connect-poc-logs'
